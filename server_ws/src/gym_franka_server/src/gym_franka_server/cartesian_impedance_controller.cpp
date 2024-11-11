@@ -147,7 +147,6 @@ bool CartesianImpedanceController::init(hardware_interface::RobotHW* robot_hw,
         << 2.0 * sqrt(20) * Eigen::Matrix3d::Identity();
     nullspace_stiffness_target_ = 0.5;
 
-    pub_robot_mode_ = node_handle.advertise<std_msgs::String>("robot_mode", 1);
     return true;
 }
 
@@ -217,15 +216,19 @@ void CartesianImpedanceController::update(const ros::Time& /*time*/,
     // Cartesian PD control with damping ratio = 1
     // Adding force limit
     Eigen::Matrix<double, 6, 1> cartesian_force_torque, cft_cap_low, cft_cap_high;
-    cft_cap_low << -20, -10, -10, -5, -5, -5;
-    cft_cap_high << 20, 10, 10, 5, 5, 5;
+    // cft_cap_low << -20, -10, -10, -5, -5, -5;
+    // cft_cap_high << 20, 10, 10, 5, 5, 5;
+    cft_cap_low << -30, -15, -15, -7.5, -7.5, -7.5;
+    cft_cap_high << 30, 15, 15, 7.5, 7.5, 7.5;
     cartesian_force_torque << -cartesian_stiffness_ * error - cartesian_damping_ * (jacobian * dq);
     for (size_t i = 0; i < 6; i++) {
         if (cartesian_force_torque[i] < cft_cap_low[i]) {
             cartesian_force_torque[i] = cft_cap_low[i];
+            // std::cout << "force limit breached" << std::endl;
         }
         if (cartesian_force_torque[i] > cft_cap_high[i]) {
             cartesian_force_torque[i] = cft_cap_high[i];
+            // std::cout << "force limit breached" << std::endl;
         }
     }
     tau_task << jacobian.transpose() * cartesian_force_torque;
@@ -237,18 +240,16 @@ void CartesianImpedanceController::update(const ros::Time& /*time*/,
     tau_nullspace << (Eigen::MatrixXd::Identity(7, 7) - jacobian.transpose() * jacobian_transpose_pinv) *
                      (nullspace_stiffness_ * q_null_dist - (2.0 * sqrt(nullspace_stiffness_)) * dq);
 
-    // Disable task torque in the wrong direction when joint limit slack is breached.
+    // Add counter torque when joint limit slack is breached.
     tau_joint_limit.setZero();
     double q_dist_to_min, q_dist_to_max;
     for (size_t i = 0; i < 7; i++) {
         q_dist_to_min = q[i] - q_min_[i];
         q_dist_to_max = q_max_[i] - q[i];
         if (q_dist_to_min < q_limit_slack_) {
-            tau_joint_limit[i] = exp((q_limit_slack_ - q_dist_to_min) * q_limit_avoidance_param_);
-            tau_task[i] = std::max(0., tau_task[i]);
+            tau_joint_limit[i] = (q_limit_slack_ - q_dist_to_min) * q_limit_avoidance_stiffness_;
         } else if (q_dist_to_max < q_limit_slack_) {
-            tau_joint_limit[i] = -exp((q_limit_slack_ - q_dist_to_max) * q_limit_avoidance_param_);
-            tau_task[i] = std::min(0., tau_task[i]);
+            tau_joint_limit[i] = -(q_limit_slack_ - q_dist_to_max) * q_limit_avoidance_stiffness_;
         }
     }
 
@@ -276,13 +277,6 @@ void CartesianImpedanceController::update(const ros::Time& /*time*/,
         position_and_orientation_d_target_mutex_);
     position_d_ = filter_params_ * position_d_target_ + (1.0 - filter_params_) * position_d_;
     orientation_d_ = orientation_d_.slerp(filter_params_, orientation_d_target_);
-
-    // <RobotMode> kOther, kIdle, kMove, kGuiding, kReflex, kUserStopped, kAutomaticErrorRecovery
-    std_msgs::String msg;
-    std::stringstream stream;
-    stream << "<RobotMode> " << int(robot_state.robot_mode);
-    msg.data = stream.str();
-    pub_robot_mode_.publish(msg);
 }
 
 Eigen::Matrix<double, 7, 1> CartesianImpedanceController::saturateTorqueRate(
