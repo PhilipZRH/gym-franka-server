@@ -163,7 +163,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(
-  PROGRAMS scripts/socket_interface.py scripts/xbox_controller_publisher.py scripts/move_to_start.py
+  PROGRAMS scripts/websocket_interface.py scripts/move_to_start.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

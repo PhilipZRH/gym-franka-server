@@ -5,5 +5,5 @@
   <rosparam command="load" file="$(find gym_franka_server)/config/gym_franka_controllers.yaml" subst_value="true" />
   <rosparam command="load" file="$(find franka_description)/robots/$(arg robot)/joint_limits.yaml" subst_value="true" />
   <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="cartesian_impedance_controller"/>
-  <include file="$(find gym_franka_server)/launch/socket_interface.launch" pass_all_args="true"/>
+  <include file="$(find gym_franka_server)/launch/websocket_interface.launch" pass_all_args="true"/>
 </launch>

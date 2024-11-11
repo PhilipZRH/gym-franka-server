@@ -19,5 +19,5 @@ cd ..
 
 echo "source $(pwd)/server_ws/devel/setup.bash" >> ~/.bashrc
 
-pip3 install pyquaternion
+pip3 install websockets scipy
 

@@ -6,26 +6,31 @@ import rospy as ros
 from actionlib import SimpleActionClient
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from control_msgs.msg import FollowJointTrajectoryAction, \
-                             FollowJointTrajectoryGoal, FollowJointTrajectoryResult
+from control_msgs.msg import (
+    FollowJointTrajectoryAction,
+    FollowJointTrajectoryGoal,
+    FollowJointTrajectoryResult,
+)
 from franka_msgs.msg import ErrorRecoveryActionGoal
 
 
-ros.init_node('move_to_start')
-error_recovery_publisher = ros.Publisher('/franka_control/error_recovery/goal', ErrorRecoveryActionGoal, queue_size=1)
+ros.init_node("move_to_start")
+error_recovery_publisher = ros.Publisher(
+    "/franka_control/error_recovery/goal", ErrorRecoveryActionGoal, queue_size=1
+)
 
-action = ros.resolve_name('~follow_joint_trajectory')
+action = ros.resolve_name("~follow_joint_trajectory")
 client = SimpleActionClient(action, FollowJointTrajectoryAction)
 ros.loginfo("move_to_start: Waiting for '" + action + "' action to come up")
 client.wait_for_server()
 
-param = ros.resolve_name('~joint_pose')
+param = ros.resolve_name("~joint_pose")
 pose = ros.get_param(param, None)
 if pose is None:
     ros.logerr('move_to_start: Could not find required parameter "' + param + '"')
     sys.exit(1)
 
-topic = ros.resolve_name('~joint_states')
+topic = ros.resolve_name("~joint_states")
 
 while True:
     ros.loginfo("move_to_start: Waiting for message on topic '" + topic + "'")
@@ -38,7 +43,7 @@ while True:
     point.time_from_start = ros.Duration.from_sec(
         # Use either the time to move the furthest joint with 'max_dq' or 500ms,
         # whatever is greater
-        max(max_movement / ros.get_param('~max_dq', 0.5), 0.5)
+        max(max_movement / ros.get_param("~max_dq", 0.5), 0.5)
     )
     goal = FollowJointTrajectoryGoal()
 
@@ -48,41 +53,37 @@ while True:
     goal.trajectory.points.append(point)
     goal.goal_time_tolerance = ros.Duration.from_sec(0.5)
 
-    ros.loginfo('Sending trajectory Goal to move into initial config')
+    ros.loginfo("Sending trajectory Goal to move into initial config")
 
     client.send_goal_and_wait(goal)
 
     result = client.get_result()
     if result.error_code != FollowJointTrajectoryResult.SUCCESSFUL:
-        ros.logerr('move_to_start: Movement was not successful: ' + {
-            FollowJointTrajectoryResult.INVALID_GOAL:
-            """
+        ros.logerr(
+            "move_to_start: Movement was not successful: "
+            + {
+                FollowJointTrajectoryResult.INVALID_GOAL: """
             The joint pose you want to move to is invalid (e.g. unreachable, singularity...).
             Is the 'joint_pose' reachable?
             """,
-
-            FollowJointTrajectoryResult.INVALID_JOINTS:
-            """
+                FollowJointTrajectoryResult.INVALID_JOINTS: """
             The joint pose you specified is for different joints than the joint trajectory controller
             is claiming. Does you 'joint_pose' include all 7 joints of the robot?
             """,
-
-            FollowJointTrajectoryResult.PATH_TOLERANCE_VIOLATED:
-            """
+                FollowJointTrajectoryResult.PATH_TOLERANCE_VIOLATED: """
             During the motion the robot deviated from the planned path too much. Is something blocking
             the robot?
             """,
-
-            FollowJointTrajectoryResult.GOAL_TOLERANCE_VIOLATED:
-            """
+                FollowJointTrajectoryResult.GOAL_TOLERANCE_VIOLATED: """
             After the motion the robot deviated from the desired goal pose too much. Probably the robot
             didn't reach the joint_pose properly
             """,
-        }[result.error_code])
-        
+            }[result.error_code]
+        )
+
         recovery_command = ErrorRecoveryActionGoal()
         error_recovery_publisher.publish(recovery_command)
-        
+
     else:
-        ros.loginfo('move_to_start: Successfully moved into start pose')
+        ros.loginfo("move_to_start: Successfully moved into start pose")
         break

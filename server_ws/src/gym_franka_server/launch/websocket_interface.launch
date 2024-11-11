@@ -1,0 +1,6 @@
+<launch>
+  <param name="websocket_interface/address" value="$(arg address)" />
+  <param name="websocket_interface/port" value="$(arg port)" />
+  <param name="websocket_interface/client" value="$(arg client)" />
+  <node pkg="gym_franka_server" type="websocket_interface.py" output="screen" name="websocket_interface" required="true"/>
+</launch>

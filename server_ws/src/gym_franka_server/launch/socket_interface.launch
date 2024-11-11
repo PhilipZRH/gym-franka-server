@@ -1,6 +1,0 @@
-<launch>
-  <param name="socket_interface/address" value="$(arg address)" />
-  <param name="socket_interface/port" value="$(arg port)" />
-  <param name="socket_interface/client" value="$(arg client)" />
-  <node pkg="gym_franka_server" type="socket_interface.py" output="screen" name="socket_interface" required="true"/>
-</launch>

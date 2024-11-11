@@ -43,11 +43,11 @@ class CartesianImpedanceController : public controller_interface::MultiInterface
 
         // double filter_params_{0.005};
         double filter_params_{1};
-        double nullspace_stiffness_{20.0};
-        double nullspace_stiffness_target_{20.0};
-        const double delta_tau_max_{1.0};
-        double q_limit_slack_{M_PI / 15};
-        double q_limit_avoidance_param_{10};
+        double nullspace_stiffness_{20};
+        double nullspace_stiffness_target_{20};
+        const double delta_tau_max_{10};
+        double q_limit_slack_{M_PI / 10};
+        double q_limit_avoidance_stiffness_{100};
         Eigen::Matrix<double, 6, 6> cartesian_stiffness_;
         Eigen::Matrix<double, 6, 6> cartesian_stiffness_target_;
         Eigen::Matrix<double, 6, 6> cartesian_damping_;
@@ -71,9 +71,6 @@ class CartesianImpedanceController : public controller_interface::MultiInterface
         // Equilibrium pose subscriber
         ros::Subscriber sub_equilibrium_pose_;
         void equilibriumPoseCallback(const geometry_msgs::PoseStampedConstPtr& msg);
-
-        // Robot state publisher
-        ros::Publisher pub_robot_mode_;
     };
 
 }  // namespace gym_franka_server
